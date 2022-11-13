@@ -3,7 +3,7 @@
 Run the following commands to install and run the project on your laptop:
 
 ```
-sudo apt install -y postgresql postgresql-contrib libpq-dev libgmp-dev
+sudo apt install -y libpq-dev libgmp-dev
 
 git clone https://github.com/mahdianyoones/zeply-code-challenge.git
 
@@ -19,5 +19,3 @@ python3 manage.py migrate
 
 python3 manage.py runserver
 ```
-
-Then you may reinstall the requirements.
