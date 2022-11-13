@@ -35,16 +35,16 @@ def generate(request):
         return Response(request.currency+" is not among supported currencies.")
     output = {}
     if wallet_exists(WALLET_NAME, db_uri=DB_URI):
-        w = Wallet(WALLET_NAME, db_uri=DB_URI)
+        wallet = Wallet(WALLET_NAME, db_uri=DB_URI)
     else:
         mn = Mnemonic()
         passphrase = mn.generate()
-        w = Wallet.create(WALLET_NAME, keys=passphrase, db_uri=DB_URI, network=network_name)
+        wallet = Wallet.create(WALLET_NAME, keys=passphrase, db_uri=DB_URI, network=network_name)
         output["passphrase"] = passphrase
         output["message"] = "A new wallet has been created for you."
         output["message"] += " Make a back of the return passphrase,"
         output["message"] += " or else, your future coins will be lost forever!"
-    new_key = w.new_key(network=network_name)
+    new_key = wallet.new_key(network=network_name)
     generated_address = new_key.address
     output["id"] = new_key.key_id
     output["address"] = generated_address
@@ -72,13 +72,14 @@ def list(request):
 
 @api_view(['post'])
 def retrieve(request):
+    """Returns address and balance of the given id."""
     if not wallet_exists(WALLET_NAME, db_uri=DB_URI):
         return Response("No wallet exists yet!")
-    w = Wallet(WALLET_NAME, db_uri=DB_URI)
+    wallet = Wallet(WALLET_NAME, db_uri=DB_URI)
     if not "id" in request.data:
         return Response("Please specify an address ID.")
     try:
-        key = w.key(request.data["id"]).as_dict()
+        key = wallet.key(request.data["id"]).as_dict()
     except Exception:
         return Response("Not found")
     output = {
