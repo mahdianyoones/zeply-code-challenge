@@ -18,7 +18,11 @@ pip install -r requirements.txt
 python3 manage.py runserver
 ```
 
-After that, run the following commands in your terminal to generate some addresses:
+*The APIs in this project, are indeed wrappers to the cryptocurrency library **bitcoinlib**. This library implements a full HD vallet with optional automatic saving into a database of your choise. The database engine of choice in this project is sqlite3 which is passed as a parameter to the library functions and classes; the rest is handled gracefully by it. However, we can extend the functionality of this library by dealing with the database, making it a multi-user online wallet for instance. Furthermore, we may only work with individual classes of this library, such as mnemonic and key, and do the rest in our own way.*
+
+Run the following commands in your terminal to generate some addresses:
+
+**Note: The first call to /generate endpoint, generates a fresh random passphrase which is the master key to be backed up. If the database gets corrupted or lost, addresses and transactions can be fully recovered only by having this passphrase.**
 
 Bitcoin:
 
