@@ -56,15 +56,16 @@ def list(request):
     if not wallet_exists(WALLET_NAME, db_uri=DB_URI):
         return Response("No wallet exists yet!")
     w = Wallet(WALLET_NAME, db_uri=DB_URI)
-    generated_addresses = w.keys_addresses()
+    generated_addresses = w.keys(as_dict=True)
     output = {}
     for ga in generated_addresses:
-        network_code = get_network_code(ga.network_name)
+        network_code = get_network_code(ga["network_name"])
         if not network_code in output:
             output[network_code] = []
         output[network_code].append({
-            "address": ga.address,
-            "id": ga.id
+            "address": ga["address"],
+            "id": ga["id"],
+            "balance": ga["balance"]
         })
     output["total"] = len(generated_addresses)
     return Response(output)
