@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
-from bitcoinlib.wallets import Wallet, wallets_exists
+from bitcoinlib.wallets import Wallet, wallet_exists
 from bitcoinlib.mnemonic import Mnemonic
 from bitcoinlib.networks import NETWORK_DEFINITIONS
 
@@ -12,7 +12,7 @@ NETWORK_NOT_SUPPORTED = False
 def get_network_name(network_code):
     '''Converts BTC to bitcoin, LTC to litecoin, etc.'''
     for network_name, definitions in NETWORK_DEFINITIONS.items():
-        if definitions["network_code"] == network_code:
+        if definitions["currency_code"] == network_code:
             return network_name
     return NETWORK_NOT_SUPPORTED
 
@@ -28,51 +28,61 @@ def generate(request):
     
     If no wallet exists yet, a new one is created using a random generated
     seed."""
-    network_name = get_network_name(request.currency)
+    if not "currency" in request.data:
+        return Response("currency is not given")
+    network_name = get_network_name(request.data["currency"])
     if network_name == NETWORK_NOT_SUPPORTED:
         return Response(request.currency+" is not among supported currencies.")
     output = {}
-    if wallets_exists("My wallet"):
+    if wallet_exists(WALLET_NAME, db_uri=DB_URI):
         w = Wallet(WALLET_NAME, db_uri=DB_URI)
     else:
         mn = Mnemonic()
         passphrase = mn.generate()
-        w = Wallet.create(WALLET_NAME, keys=passphrase, db_uri=DB_URI)
+        w = Wallet.create(WALLET_NAME, keys=passphrase, db_uri=DB_URI, network=network_name)
         output["passphrase"] = passphrase
         output["message"] = "A new wallet has been created for you."
         output["message"] += " Make a back of the return passphrase,"
         output["message"] += " or else, your future coins will be lost forever!"
     new_key = w.new_key(network=network_name)
     generated_address = new_key.address
+    output["id"] = new_key.key_id
     output["address"] = generated_address
     return Response(output)
 
 @api_view(['get'])
 def list(request):
     """Returns the list of all addresses for the given currency network."""
-    if not wallets_exists(WALLET_NAME, db_uri=DB_URI):
+    if not wallet_exists(WALLET_NAME, db_uri=DB_URI):
         return Response("No wallet exists yet!")
     w = Wallet(WALLET_NAME, db_uri=DB_URI)
-    generated_addresses = w.keys_networks()
+    generated_addresses = w.keys_addresses()
     output = {}
     for ga in generated_addresses:
         network_code = get_network_code(ga.network_name)
-        output[network_code] = {
+        if not network_code in output:
+            output[network_code] = []
+        output[network_code].append({
             "address": ga.address,
             "id": ga.id
-        }
+        })
+    output["total"] = len(generated_addresses)
     return Response(output)
 
-@api_view(['get'])
+@api_view(['post'])
 def retrieve(request):
-    if not wallets_exists(WALLET_NAME):
+    if not wallet_exists(WALLET_NAME, db_uri=DB_URI):
         return Response("No wallet exists yet!")
     w = Wallet(WALLET_NAME, db_uri=DB_URI)
+    if not "id" in request.data:
+        return Response("Please specify an address ID.")
     try:
-        key = w.key(request.id)
+        key = w.key(request.data["id"]).as_dict()
     except Exception:
         return Response("Not found")
-    # Preventing retrieval of provate keys!
-    if key.is_private:
-        return Response("Not found")
-    return Response(key.address)
+    output = {
+        "address": key["address"],
+        "currency": get_network_code(key["network"]),
+        "balance": key["balance_str"]
+    }
+    return Response(output)
