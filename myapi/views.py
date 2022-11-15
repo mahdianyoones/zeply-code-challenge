@@ -32,7 +32,6 @@ def generate(request):
         return Response("currency is not given")
     network_name = get_network_name(request.data["currency"])
     if network_name == NETWORK_NOT_SUPPORTED:
-        return Response(NETWORK_DEFINITIONS)
         return Response(request.data["currency"]+" is not among supported currencies.")
     output = {}
     if wallet_exists(WALLET_NAME, db_uri=DB_URI):
